@@ -4,6 +4,7 @@ import { useCart } from "../context/cart";
 import { useAuth } from "../context/auth";
 import { useNavigate } from "react-router-dom";
 import DropIn from "braintree-web-drop-in-react";
+import { AiFillWarning } from "react-icons/ai";
 import axios from "axios";
 import toast from "react-hot-toast";
 import "../styles/CartStyles.css";
@@ -14,8 +15,6 @@ const CartPage = () => {
   const [clientToken, setClientToken] = useState("");
   const [instance, setInstance] = useState("");
   const [loading, setLoading] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState("braintree");
-  const [gcashReference, setGcashReference] = useState("");
   const navigate = useNavigate();
 
   //total price
@@ -33,7 +32,6 @@ const CartPage = () => {
       console.log(error);
     }
   };
-
   //detele item
   const removeCartItem = (pid) => {
     try {
@@ -79,98 +77,9 @@ const CartPage = () => {
       setLoading(false);
     }
   };
-
-  // Handle Gcash payment
-  const handlePaymentGcash = async () => {
-    try {
-      if (!gcashReference) {
-        toast.error("Gcash reference is required.");
-        return;
-      }
-
-      setLoading(true);
-
-      // Send the Gcash reference and other necessary details to your backend
-      const { data } = await axios.post("/api/v1/product/gcash/payment", {
-        referenceNumber: gcashReference,
-        cart,
-      });
-
-      setLoading(false);
-
-      if (data.success) {
-        localStorage.removeItem("cart");
-        setCart([]);
-        navigate("/dashboard/user/orders");
-        toast.success("Payment Completed Successfully ");
-      } else {
-        toast.error("Payment Failed. Please try again.");
-      }
-    } catch (error) {
-      console.log(error);
-      setLoading(false);
-    }
-  };
-
-  // Render payment section based on the selected payment method
-  const renderPaymentSection = () => {
-    switch (selectedPayment) {
-      case "braintree":
-        return (
-          <>
-            <DropIn
-              options={{
-                authorization: clientToken,
-                paypal: {
-                  flow: "vault",
-                },
-              }}
-              onInstance={(instance) => setInstance(instance)}
-            />
-            <button
-              className="btn btn-primary"
-              onClick={handlePayment}
-              disabled={loading || !instance || !auth?.user?.address}
-            >
-              {loading ? "Processing ...." : "Make Payment"}
-            </button>
-          </>
-        );
-      case "gcash":
-        return (
-          <div className="gcash-payment">
-            <img
-              src="/images/qrcode.png"
-              alt="Gcash QR Code"
-              width="200px"
-              height="200px"
-            />
-            <p>Please scan the QR code and send the total amount to complete the payment.</p>
-            <div className="gcash-confirm">
-              <label>Gcash Reference:</label>
-              <input
-                type="text"
-                value={gcashReference}
-                onChange={(e) => setGcashReference(e.target.value)}
-              /><br />
-              <button
-                className="btn btn-primary"
-                onClick={handlePaymentGcash}
-                disabled={!gcashReference || loading || !auth?.user?.address}
-              >
-                {loading ? "Processing ...." : "Confirm Gcash Payment"}
-              </button>
-            </div>
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
   return (
     <Layout>
-      <div className="cart-page">
+      <div className=" cart-page">
         <div className="row">
           <div className="col-md-12">
             <h1 className="text-center bg-light p-2 mb-1">
@@ -187,9 +96,9 @@ const CartPage = () => {
             </h1>
           </div>
         </div>
-        <div className="container">
-          <div className="row">
-            <div className="col-md-7 p-0 m-0">
+        <div className="container ">
+          <div className="row ">
+            <div className="col-md-7  p-0 m-0">
               {cart?.map((p) => (
                 <div className="row card flex-row" key={p._id}>
                   <div className="col-md-4">
@@ -222,21 +131,67 @@ const CartPage = () => {
               <p>Total | Checkout | Payment</p>
               <hr />
               <h4>Total : {totalPrice()} </h4>
+              {auth?.user?.address ? (
+                <>
+                  <div className="mb-3">
+                    <h4>Current Address</h4>
+                    <h5>{auth?.user?.address}</h5>
+                    <button
+                      className="btn btn-outline-warning"
+                      onClick={() => navigate("/dashboard/user/profile")}
+                    >
+                      Update Address
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="mb-3">
+                  {auth?.token ? (
+                    <button
+                      className="btn btn-outline-warning"
+                      onClick={() => navigate("/dashboard/user/profile")}
+                    >
+                      Update Address
+                    </button>
+                  ) : (
+                    <button
+                      className="btn btn-outline-warning"
+                      onClick={() =>
+                        navigate("/login", {
+                          state: "/cart",
+                        })
+                      }
+                    >
+                      Plase Login to checkout
+                    </button>
+                  )}
+                </div>
+              )}
+              <div className="mt-2">
+                {!clientToken || !auth?.token || !cart?.length ? (
+                  ""
+                ) : (
+                  <>
+                    <DropIn
+                      options={{
+                        authorization: clientToken,
+                        paypal: {
+                          flow: "vault",
+                        },
+                      }}
+                      onInstance={(instance) => setInstance(instance)}
+                    />
 
-              {/* Add a dropdown menu for payment options */}
-              <div className="payment-dropdown">
-                <label>Select Payment Method:</label>
-                <select
-                  value={selectedPayment}
-                  onChange={(e) => setSelectedPayment(e.target.value)}
-                >
-                  <option value="braintree">Credit Card</option>
-                  <option value="gcash">Gcash</option>
-                </select>
+                    <button
+                      className="btn btn-primary"
+                      onClick={handlePayment}
+                      disabled={loading || !instance || !auth?.user?.address}
+                    >
+                      {loading ? "Processing ...." : "Make Payment"}
+                    </button>
+                  </>
+                )}
               </div>
-
-              {/* Render payment section based on the selected payment method */}
-              {renderPaymentSection()}
             </div>
           </div>
         </div>

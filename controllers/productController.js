@@ -375,3 +375,34 @@ export const brainTreePaymentController = async (req, res) => {
     console.log(error);
   }
 };
+
+// Handle order creation with a reference number
+export const handleOrderWithReferenceController = async (req, res) => {
+  try {
+    const { referenceNumber, cart } = req.body;
+
+    // Perform necessary validation
+
+    // Calculate the total amount from the cart
+    let total = 0;
+    cart.forEach((item) => {
+      total += item.price;
+    });
+
+    // Create a new order with the provided reference number
+    const order = new orderModel({
+      products: cart,
+      payment: { referenceNumber, amount: total }, // Save the reference number and total amount
+      buyer: req.user._id,
+    });
+
+    // Save the order to the database
+    await order.save();
+
+    // Send a success response
+    res.json({ success: true, message: "Order created successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
