@@ -32,6 +32,12 @@ app.get("/", (req, res) => {
   res.send("<h1>Welcome to ecommerce app</h1>");
 });
 
+app.use("/", express.static("client/build"));
+
+  app.get("*", (req, res) => {
+    res.sendFile(path.resolve(__dirname, "client/build/index.html"));
+  });
+
 //PORT
 const PORT = process.env.PORT || 8080;
 
