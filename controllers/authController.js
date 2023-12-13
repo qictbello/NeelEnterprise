@@ -255,3 +255,42 @@ export const orderStatusController = async (req, res) => {
     });
   }
 };
+
+export const deleteOrderController = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    // Validate if the user is authenticated
+    if (!req.user) {
+      return res.status(401).send({
+        success: false,
+        message: "Authentication required to delete orders.",
+      });
+    }
+
+    // Validate if the user is an admin
+    const user = await userModel.findById(req.user._id);
+    if (user && user.role === 1) {
+      // User is an admin, proceed with order deletion
+      await orderModel.findByIdAndDelete(orderId);
+
+      res.status(200).send({
+        success: true,
+        message: "Order deleted successfully",
+      });
+    } else {
+      // User is not an admin, send a 403 Forbidden response
+      return res.status(403).send({
+        success: false,
+        message: "You are not authorized to delete orders.",
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Error while deleting order",
+      error,
+    });
+  }
+};
